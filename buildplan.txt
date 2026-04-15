@@ -1,0 +1,543 @@
+PROJECT CONTEXT & SPECIFICATION
+Project Name: Halo-1
+Type: Windows System Topbar & App Dock Overlay
+License: MIT/Apache-2.0
+Goal: Create a minimalist, macOS/Linux-inspired system bar that safely overlays Windows without replacing explorer.exe
+
+TECH STACK
+Backend: Rust (Tauri v2)
+Frontend: Vue 3 + TypeScript + Composition API
+Styling: CSS3 with custom properties, backdrop-filter, transitions
+Build System: Cargo + Tauri CLI
+State Management: Pinia (Vue)
+System APIs: windows-rs crate, arboard (clipboard), sysinfo (system stats)
+
+DESIGN REFERENCE
+Dark themed topbar (similar to attached image) showing:
+Left: App launcher, workspace indicators
+Center: Dynamic "pill" with date/time, media controls, morphing capabilities
+Right: System stats (CPU %, RAM %, Battery %, Network, Volume, Notifications)
+Bottom: Auto-hide app dock with smooth animations
+
+ARCHITECTURE CONSTRAINTS
+NEVER replace or inject into explorer.exe
+Run as always-on-top borderless window
+Use Windows App SDK / WinRT APIs where available
+Config stored in %APPDATA%/halo-1/config.json
+Graceful fallback if APIs unavailable
+Multi-monitor support
+DPI-aware rendering
+
+PHASED DEVELOPMENT PLAN
+PHASE 1: Project Scaffolding & Basic Window
+Goal: Initialize Tauri + Vue3 project with basic always-on-top window
+Tasks:
+Create Tauri v2 app with Vue3 + TypeScript template
+Configure borderless, transparent, always-on-top window (height: 40px, full width)
+Set up ESLint + Prettier + Rust fmt
+Create basic folder structure (src/components, src/stores, src-tauri/src)
+Add dark theme CSS variables
+Implement basic window drag functionality
+Acceptance Criteria:
+Window appears at top of screen, 40px height, full width
+Transparent background with backdrop blur
+Can drag window to reposition
+No taskbar icon (WS_EX_TOOLWINDOW)
+Commit Message:
+feat: initialize Halo-1 project structure
+
+- Set up Tauri v2 with Vue 3 + TypeScript
+- Configure borderless always-on-top window (40px height)
+- Add dark theme CSS variables and base styling
+- Implement window drag functionality
+- Add ESLint, Prettier, and Rust fmt configuration
+
+PHASE 2: System Stats Integration (Right Panel)
+Goal: Display real-time system information matching reference image
+Tasks:
+Integrate sysinfo crate for CPU/RAM monitoring
+Add windows crate for battery status (Windows::Devices::Power)
+Create SystemStats store (Pinia) with polling interval (2s)
+Build RightPanel component with:
+CPU usage % with icon
+RAM usage % with icon
+Battery % + charging indicator
+Network up/down speed
+Volume icon + mute state
+Notification bell icon
+Add smooth number transitions (CSS)
+Implement tooltip on hover for each stat
+Acceptance Criteria:
+All stats update every 2 seconds
+Icons from Lucide Vue or similar
+Values formatted (e.g., "45%", "2.3 GB/s")
+Battery shows charging/discharging state
+Graceful degradation if metric unavailable
+Commit Message:
+feat: implement real-time system statistics panel
+
+- Integrate sysinfo crate for CPU/RAM monitoring
+- Add Windows Power API for battery status
+- Create RightPanel component with CPU, RAM, battery, network, volume
+- Implement Pinia store with 2s polling interval
+- Add Lucide icons and tooltip system
+- Format values with smooth CSS transitions
+
+PHASE 3: Dynamic Pill Component (Center)
+Goal: Create the morphing center pill with date/time and expansion capability
+Tasks:
+Build CenterPill component with CSS clip-path/border-radius transitions
+Default state: Show date (e.g., "Thu, Apr 16") + time ("20:39")
+Implement morph states:
+default: Compact pill (120px width)
+media: Expanded showing now-playing info
+clipboard: Shows recent clipboard item
+expanded: Full controls view
+Add click handler to cycle through states
+Implement smooth CSS transitions (300ms cubic-bezier)
+Add keyboard shortcut (Ctrl+Space) to toggle
+Use CSS backdrop-filter: blur(20px) for glass effect
+Acceptance Criteria:
+Pill morphs smoothly between states
+Date/time updates every second
+Click or Ctrl+Space triggers morph
+Glass morphism effect matches macOS
+Centered horizontally in topbar
+Commit Message:
+feat: create morphing center pill with dynamic states
+
+- Build CenterPill component with CSS clip-path animations
+- Implement default (date/time), media, clipboard, expanded states
+- Add smooth 300ms transitions with cubic-bezier easing
+- Integrate keyboard shortcut (Ctrl+Space) for state cycling
+- Apply backdrop-filter blur for glass morphism effect
+- Center-align pill in topbar with flexbox
+
+PHASE 4: Media Controls Integration
+Goal: Display and control system-wide media playback in the pill
+Tasks:
+Use windows::Media::Playback::SystemMediaTransportControls
+Create MediaStore (Pinia) to track:
+Title, Artist, Album
+Playback state (playing/paused/stopped)
+Album art (if available)
+Progress bar
+Add media controls in pill expanded state:
+Play/Pause toggle
+Previous/Next track
+Progress scrubber
+Auto-expand pill when media starts playing (configurable)
+Show mini player in pill default state when media active
+Acceptance Criteria:
+Detects Spotify, Chrome, Edge, VLC, etc.
+Updates metadata in real-time
+Controls work across apps
+Album art displays when available
+Progress bar syncs with playback
+Commit Message:
+feat: integrate system-wide media playback controls
+
+- Implement Windows SystemMediaTransportControls API
+- Create MediaStore with title, artist, playback state, progress
+- Add play/pause/prev/next controls in pill expanded state
+- Display album art and progress scrubber
+- Auto-expand pill on media playback (configurable)
+- Support Spotify, Chrome, Edge, VLC via SMTC
+
+PHASE 5: Clipboard Manager
+Goal: Add clipboard history and quick paste functionality
+Tasks:
+Integrate arboard crate for clipboard access
+Create ClipboardStore with:
+History array (last 20 items)
+Text, image (base64), HTML support
+Timestamp for each entry
+Search/filter capability
+Build ClipboardPanel component (expands from pill)
+Add keyboard shortcut (Ctrl+Shift+V) to open
+Implement quick paste on click
+Add pin/favorite for frequent items
+Store history in %APPDATA%/halo-1/clipboard.json
+Acceptance Criteria:
+Captures text and images automatically
+History persists across restarts
+Searchable interface
+Click to paste
+Configurable history limit (default 20)
+Secure: option to clear sensitive data
+Commit Message:
+feat: implement clipboard history manager
+
+- Integrate arboard crate for cross-format clipboard access
+- Create ClipboardStore with text/image/HTML support
+- Build searchable ClipboardPanel with last 20 items
+- Add Ctrl+Shift+V shortcut for quick access
+- Persist history to %APPDATA%/halo-1/clipboard.json
+- Implement quick paste, pin/favorite, and auto-capture
+
+PHASE 6: App Dock (Bottom)
+Goal: Create auto-hiding application dock at screen bottom
+Tasks:
+Create Dock component (fixed bottom, auto-hide)
+Implement auto-hide logic:
+Show on mouse near bottom edge (10px threshold)
+Hide after 2s cursor leave
+Show on Win+D (configurable)
+Dock features:
+Grid of app icons (user-configurable)
+Running app indicators (dots)
+Launch on click
+Drag to reorder
+Right-click context menu (pin/unpin, close)
+Pull default apps from Start Menu shortcuts
+Add magnification effect on hover (macOS style)
+Acceptance Criteria:
+Dock appears at bottom center
+Smooth slide animation (200ms)
+Icons 48px with 12px spacing
+Running apps show indicator
+Drag-and-drop reordering works
+Context menu functional
+Commit Message:
+feat: build auto-hiding application dock
+
+- Create bottom dock with slide animations (200ms)
+- Implement auto-hide/show on cursor proximity (10px threshold)
+- Add app grid with Start Menu integration
+- Show running app indicators and magnification on hover
+- Enable drag-to-reorder and right-click context menu
+- Support pin/unpin and quick launch functionality
+
+PHASE 7: Left Panel & Workspace Switcher
+Goal: Add app launcher and workspace indicators
+Tasks:
+Build LeftPanel component with:
+Halo icon (app launcher)
+Workspace indicators (1, 2, 3, 4)
+Quick settings toggle
+Implement virtual desktop detection via IVirtualDesktopManager
+Add workspace switcher (Win+Ctrl+Left/Right)
+App launcher modal:
+Search bar
+Pinned apps grid
+Recent apps list
+Launch on Enter
+Integrate with Windows Virtual Desktop API
+Acceptance Criteria:
+Shows current workspace number
+Switches desktops on click/shortcut
+App launcher searches installed apps
+Fuzzy search for app names
+Modal overlay with blur backdrop
+Commit Message:
+feat: add workspace switcher and app launcher
+
+- Build LeftPanel with workspace indicators (1-4)
+- Integrate IVirtualDesktopManager for virtual desktop detection
+- Implement app launcher modal with search and pinned apps
+- Add Win+Ctrl+Left/Right shortcut support
+- Fuzzy search through Start Menu applications
+- Show current workspace with smooth transitions
+
+PHASE 8: Notifications Center
+Goal: Replace Windows notifications with custom center
+Tasks:
+Use windows::UI::Notifications API
+Create NotificationCenter component (slides from right)
+Features:
+Grouped notifications by app
+Mark as read/dismiss
+Quick reply (if supported)
+Do Not Disturb toggle
+Notification history (24h)
+Toast notification display in topbar
+Store in SQLite or JSON
+Keyboard shortcut (Win+N)
+Acceptance Criteria:
+Captures Windows toast notifications
+Groups by application
+Dismiss syncs with Windows Action Center
+DND mode silences notifications
+Slide-in animation from right edge
+Persistent history
+Commit Message:
+feat: implement custom notification center
+
+- Integrate Windows Toast Notification API
+- Build NotificationCenter with grouping by app
+- Add dismiss, quick reply, and Do Not Disturb toggle
+- Store 24h history in JSON/SQLite
+- Implement Win+N shortcut and right-edge slide animation
+- Sync read/dismiss state with Windows Action Center
+
+PHASE 9: Settings & Configuration
+Goal: Create comprehensive settings UI
+Tasks:
+Build Settings modal with tabs:
+General: Auto-start, theme (dark/light), transparency
+Topbar: Height, position, show/hide elements
+Pill: Default state, morph triggers, media auto-expand
+Dock: Position, icon size, magnification, auto-hide delay
+Shortcuts: Customize all keyboard shortcuts
+System: Metrics to display, polling intervals
+Store config in %APPDATA%/halo-1/config.json
+Add import/export config
+Validate config schema with Zod or similar
+Hot-reload config changes
+Acceptance Criteria:
+All settings persisted to JSON
+Changes apply immediately (no restart)
+Config file validated on load
+Export/import for backup
+Reset to defaults option
+Accessible via system tray or shortcut
+Commit Message:
+feat: add comprehensive settings and configuration system
+
+- Build Settings modal with 6 tabs (General, Topbar, Pill, Dock, Shortcuts, System)
+- Persist config to %APPDATA%/halo-1/config.json
+- Implement hot-reload on config changes
+- Add import/export and reset to defaults
+- Validate schema with TypeScript interfaces
+- Apply changes in real-time without restart
+
+
+PHASE 10: Polish, Performance & README
+Goal: Optimize, document, and prepare for release
+Tasks:
+Performance optimizations:
+Memoize expensive computations
+Debounce API calls
+Use CSS transforms (GPU acceleration)
+Lazy load components
+Profile with Tauri devtools
+Accessibility:
+ARIA labels
+Keyboard navigation
+High contrast mode support
+Screen reader compatibility
+Write comprehensive README.md:
+Project description & screenshot
+Features list
+Installation (MSIX/EXE)
+Configuration guide
+Keyboard shortcuts reference
+Development setup
+Contributing guidelines
+License
+Add CHANGELOG.md
+Create GitHub Actions CI/CD:
+Test on push
+Build MSIX on tag
+Release to GitHub Releases
+Add CONTRIBUTING.md
+Code of Conduct
+Acceptance Criteria:
+App uses <100MB RAM idle
+No UI jank (60fps animations)
+README is clear and complete
+CI builds successfully
+All keyboard shortcuts documented
+Accessibility audit passes
+Commit Message:
+docs: add comprehensive README and optimize performance
+
+- Write complete README with installation, features, shortcuts
+- Optimize rendering with memoization and GPU acceleration
+- Add ARIA labels and keyboard navigation for accessibility
+- Set up GitHub Actions CI/CD for automated builds
+- Create CHANGELOG.md and CONTRIBUTING.md
+- Reduce idle memory usage to <100MB
+- Ensure 60fps animations with CSS transforms
+
+
+README TEMPLATE
+Create README.md with this structure:
+markdown
+# Halo-1
+
+A minimalist, macOS-inspired system topbar and app dock for Windows. Built with Rust + Tauri + Vue 3.
+
+![Halo-1 Screenshot](./screenshot.png)
+
+## Features
+
+- **System Stats**: Real-time CPU, RAM, battery, network, and volume monitoring
+- **Dynamic Pill**: Morphing center component with date/time, media controls, and clipboard
+- **App Dock**: Auto-hiding bottom dock with magnification and drag-to-reorder
+- **Workspace Switcher**: Virtual desktop integration with quick switching
+- **Notification Center**: Custom notification management with Do Not Disturb
+- **Clipboard Manager**: History of last 20 items with quick paste
+- **Keyboard Shortcuts**: Fully customizable keybindings
+- **Safe**: Runs as overlay, never replaces explorer.exe
+
+## Installation
+
+### From Releases (Recommended)
+1. Download the latest `.msix` or `.exe` from [Releases](https://github.com/yourusername/halo-1/releases)
+2. Run the installer
+3. Launch Halo-1 from Start Menu
+
+### From Source
+```bash
+# Prerequisites: Rust, Node.js 18+, Visual Studio Build Tools
+git clone https://github.com/yourusername/halo-1.git
+cd halo-1
+npm install
+npm run tauri dev
+
+Configuration
+Config file location: %APPDATA%/halo-1/config.json
+json
+{
+  "topbar": {
+    "height": 40,
+    "position": "top",
+    "transparency": 0.8
+  },
+  "dock": {
+    "iconSize": 48,
+    "magnification": 1.5,
+    "autoHide": true
+  },
+  "shortcuts": {
+    "togglePill": "Ctrl+Space",
+    "clipboard": "Ctrl+Shift+V",
+    "notifications": "Win+N"
+  }
+}
+
+Keyboard Shortcuts
+Shortcut - Action
+Ctrl+Space
+Toggle pill states
+
+Ctrl+Shift+V
+Open clipboard manager
+
+Win+N
+Open notification center
+
+Win+Ctrl+Left/Right
+Switch virtual desktop
+
+Win+D
+Show/hide dock
+
+Development
+bash
+# Install dependencies
+npm install
+
+# Run in development mode
+npm run tauri dev
+
+# Build for production
+npm run tauri build
+
+# Lint code
+npm run lint
+cargo fmt
+
+Tech Stack
+Backend: Rust, Tauri v2, windows-rs
+Frontend: Vue 3, TypeScript, Pinia
+Styling: CSS3 with backdrop-filter
+System APIs: Windows App SDK, WinRT
+Contributing
+See CONTRIBUTING.md for guidelines.
+License
+MIT/Apache-2.0 (dual-licensed)
+Acknowledgments
+Inspired by macOS menu bar, GNOME Shell, and Windows PowerToys.
+
+---
+
+## PROJECT STRUCTURE
+
+halo-1/
+├── .github/
+│ └── workflows/
+│ └── ci.yml
+├── src/
+│ ├── components/
+│ │ ├── Topbar.vue
+│ │ ├── LeftPanel.vue
+│ │ ├── CenterPill.vue
+│ │ ├── RightPanel.vue
+│ │ ├── AppDock.vue
+│ │ ├── NotificationCenter.vue
+│ │ └── ClipboardPanel.vue
+│ ├── stores/
+│ │ ├── systemStats.ts
+│ │ ├── media.ts
+│ │ ├── clipboard.ts
+│ │ ├── notifications.ts
+│ │ └── workspaces.ts
+│ ├── composables/
+│ │ ├── useSystemInfo.ts
+│ │ ├── useMediaControls.ts
+│ │ └── useClipboard.ts
+│ ├── App.vue
+│ ├── main.ts
+│ └── styles/
+│ └── main.css
+├── src-tauri/
+│ ├── src/
+│ │ ├── main.rs
+│ │ ├── system/
+│ │ │ ├── cpu.rs
+│ │ │ ├── memory.rs
+│ │ │ ├── battery.rs
+│ │ │ ├── network.rs
+│ │ │ └── media.rs
+│ │ ├── clipboard.rs
+│ │ └── notifications.rs
+│ ├── Cargo.toml
+│ └── tauri.conf.json
+├── README.md
+├── CHANGELOG.md
+├── CONTRIBUTING.md
+├── LICENSE-APACHE
+├── LICENSE-MIT
+├── package.json
+└── tsconfig.json
+
+
+---
+
+## EXECUTION INSTRUCTIONS
+
+1. **Copy this entire prompt**
+2. **Paste into your IDE's AI assistant** (Cursor, VS Code Copilot, etc.)
+3. **Start with Phase 1** and complete each phase sequentially
+4. **After each phase:**
+   - Run tests
+   - Commit with the provided message
+   - Verify functionality
+   - Move to next phase
+5. **After Phase 10:**
+   - Tag release v0.1.0
+   - Build MSIX
+   - Publish to GitHub Releases
+
+---
+
+## SUCCESS CRITERIA
+
+✅ Topbar displays at top of screen (40px, full width)  
+✅ System stats update in real-time (CPU, RAM, battery, network)  
+✅ Center pill morphs between states smoothly  
+✅ Media controls work across apps (Spotify, Chrome, etc.)  
+✅ Clipboard history captures and pastes text/images  
+✅ App dock auto-hides and launches apps  
+✅ Keyboard shortcuts functional  
+✅ Config persists across restarts  
+✅ Memory usage <100MB idle  
+✅ No crashes or explorer.exe conflicts  
+
+---
+
+**BEGIN WITH PHASE 1 NOW.** After completing each phase, output the commit message and wait for confirmation before proceeding to the next phase.
+
+---
