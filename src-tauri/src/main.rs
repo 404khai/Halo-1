@@ -2,5 +2,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    halo1_temp_lib::run()
+    halo_1_lib::run()
 }
