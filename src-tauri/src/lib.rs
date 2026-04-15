@@ -1,4 +1,8 @@
+mod system;
+
 use tauri::{LogicalPosition, LogicalSize, Manager, Position, Size, WebviewWindow};
+
+use crate::system::stats::{get_system_stats, set_volume_muted, SystemStatsState};
 
 const TOPBAR_HEIGHT: f64 = 40.0;
 
@@ -42,6 +46,8 @@ fn apply_toolwindow_style(window: &WebviewWindow) {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .manage(SystemStatsState::new())
+        .invoke_handler(tauri::generate_handler![get_system_stats, set_volume_muted])
         .setup(|app| {
             let window = app
                 .get_webview_window("main")

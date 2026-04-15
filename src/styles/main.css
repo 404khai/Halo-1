@@ -81,6 +81,8 @@ button {
 
 .panel-right {
   justify-content: flex-end;
+  gap: 6px;
+  overflow: hidden;
 }
 
 .topbar-button,
@@ -90,10 +92,9 @@ button {
   display: inline-flex;
   align-items: center;
   height: 28px;
-  border: 1px solid var(--halo-border);
-  border-radius: 999px;
-  background: var(--halo-surface);
-  backdrop-filter: blur(20px);
+  border: none;
+  border-radius: 10px;
+  background: #121821;
   box-sizing: border-box;
 }
 
@@ -155,22 +156,96 @@ button {
 }
 
 .metric-chip {
+  position: relative;
   gap: 8px;
   padding: 0 10px;
   color: var(--halo-text);
+  transition:
+    transform 180ms ease,
+    background-color 180ms ease;
 }
 
 .metric-chip-muted {
   color: var(--halo-muted);
+  background: #0f141b;
+}
+
+.metric-chip-alert {
+  background: #2b2214;
+}
+
+.metric-chip:hover {
+  transform: translateY(-1px);
+}
+
+.metric-chip:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  max-width: 220px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: #081018;
+  color: var(--halo-text);
+  font-size: 0.7rem;
+  line-height: 1.35;
+  white-space: normal;
+  box-shadow: var(--halo-shadow);
+  pointer-events: none;
+  z-index: 5;
+}
+
+.metric-icon {
+  width: 12px;
+  height: 12px;
+  flex: 0 0 12px;
+  object-fit: contain;
+  opacity: 1;
+}
+
+.metric-icon-large {
+  width: 14px;
+  height: 14px;
+  flex-basis: 14px;
 }
 
 .metric-label {
+  flex: 0 0 auto;
   font-size: 0.72rem;
   letter-spacing: 0.08em;
   color: var(--halo-muted);
 }
 
 .metric-value {
+  flex: 0 1 auto;
   font-size: 0.78rem;
   font-weight: 600;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.metric-chip-action {
+  cursor: pointer;
+  appearance: none;
+}
+
+.metric-chip-power {
+  justify-content: center;
+  min-width: 34px;
+  padding: 0 10px;
+  background: #1a1111;
+}
+
+.metric-fade-enter-active,
+.metric-fade-leave-active {
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
+}
+
+.metric-fade-enter-from,
+.metric-fade-leave-to {
+  opacity: 0.25;
+  transform: translateY(-2px);
 }

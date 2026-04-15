@@ -75,7 +75,6 @@ Battery shows charging/discharging state
 Graceful degradation if metric unavailable
 Commit Message:
 feat: implement real-time system statistics panel
-
 - Integrate sysinfo crate for CPU/RAM monitoring
 - Add Windows Power API for battery status
 - Create RightPanel component with CPU, RAM, battery, network, volume
